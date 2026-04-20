@@ -166,6 +166,31 @@ public class Connection {
         return Native.quiche_conn_application_proto(getPointer());
     }
 
+    /** Direction argument for {@link #streamShutdown}. Mirrors {@code quiche::Shutdown}. */
+    public enum ShutdownDirection {
+        /** Stop receiving data on the stream (sends STOP_SENDING to the peer). */
+        READ(0),
+        /** Stop sending data on the stream (sends RESET_STREAM to the peer). */
+        WRITE(1);
+
+        final int code;
+
+        ShutdownDirection(int code) {
+            this.code = code;
+        }
+    }
+
+    /**
+     * Shuts down reading or writing on the given stream.
+     *
+     * @param err Application-level error code sent to the peer in the STOP_SENDING / RESET_STREAM
+     *            frame.
+     * @return 0 on success, or a negative {@link Quiche.ErrorCode} on failure.
+     */
+    public final int streamShutdown(long streamId, ShutdownDirection direction, long err) {
+        return Native.quiche_conn_stream_shutdown(getPointer(), streamId, direction.code, err);
+    }
+
     /**
      * @see Connection#close(boolean, long, byte[])
      */

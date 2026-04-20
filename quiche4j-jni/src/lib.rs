@@ -724,6 +724,30 @@ pub extern "system" fn Java_io_quiche4j_Native_quiche_1conn_1peer_1cert_1chain(
     result.into_raw()
 }
 
+/// Shuts down reading or writing on a stream. `direction` is 0 for Read, 1 for Write, matching
+/// quiche::Shutdown. Returns 0 on success or a negative error code (see error_to_c).
+#[no_mangle]
+#[warn(unused_variables)]
+pub extern "system" fn Java_io_quiche4j_Native_quiche_1conn_1stream_1shutdown(
+    _env: JNIEnv,
+    _class: JClass,
+    conn_ptr: jlong,
+    stream_id: jlong,
+    direction: jint,
+    err: jlong,
+) -> jint {
+    let conn = unsafe { &mut *(conn_ptr as *mut Connection) };
+    let dir = match direction {
+        0 => quiche::Shutdown::Read,
+        1 => quiche::Shutdown::Write,
+        _ => return -6, // InvalidState
+    };
+    match conn.stream_shutdown(stream_id as u64, dir, err as u64) {
+        Ok(()) => 0,
+        Err(e) => error_to_c(e),
+    }
+}
+
 /// Returns the ALPN value negotiated by the peer (empty if none).
 #[no_mangle]
 #[warn(unused_variables)]
@@ -893,27 +917,6 @@ pub extern "system" fn Java_io_quiche4j_Native_quiche_1conn_1stream_1send(
     }
 }
 
-#[no_mangle]
-#[warn(unused_variables)]
-pub extern "system" fn Java_io_quiche4j_Native_quiche_1conn_1stream_1shutdown(
-    _env: JNIEnv,
-    _class: JClass,
-    conn_ptr: jlong,
-    stream_id: jlong,
-    direction: jint,
-    err: jlong,
-) {
-    let conn = unsafe { &mut *(conn_ptr as *mut Connection) };
-    let dir = match direction {
-        0 => quiche::Shutdown::Read,
-        _ => quiche::Shutdown::Write,
-    };
-    match conn.stream_shutdown(stream_id as u64, dir, err as u64) {
-        Ok(_) => (),
-        Err(Error::Done) => (),
-        Err(e) => panic!("{:?}", e),
-    }
-}
 
 #[no_mangle]
 #[warn(unused_variables)]

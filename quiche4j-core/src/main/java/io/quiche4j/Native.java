@@ -47,6 +47,14 @@ public final class Native {
 
 	public final static native byte[] quiche_conn_application_proto(long conn_ptr);
 
+	/**
+	 * Shuts down reading or writing on a stream.
+	 *
+	 * @param direction 0 = stop reading (sends STOP_SENDING to peer), 1 = stop writing (sends RESET_STREAM).
+	 * @return 0 on success, or a negative {@link Quiche.ErrorCode} on failure.
+	 */
+	public final static native int quiche_conn_stream_shutdown(long conn_ptr, long stream_id, int direction, long err);
+
 	public final static native void quiche_config_verify_peer(long config_ptr, boolean v);
 
 	public final static native void quiche_config_grease(long config_ptr, boolean v);
@@ -129,8 +137,6 @@ public final class Native {
 	public final static native int quiche_conn_stream_recv(long conn_ptr, long stream_id, byte[] buf);
 
 	public final static native int quiche_conn_stream_send(long conn_ptr, long stream_id, byte[] buf, boolean fin);
-
-	public final static native void quiche_conn_stream_shutdown(long conn_ptr, long stream_id, int direction, long err);
 
 	public final static native int quiche_conn_stream_capacity(long conn_ptr, long stream_id);
 
