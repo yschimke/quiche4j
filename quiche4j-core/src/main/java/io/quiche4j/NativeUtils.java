@@ -26,6 +26,19 @@ public final class NativeUtils {
     }
 
     public static void loadEmbeddedLibrary(String dir, String libname) {
+        // On Android, the .so was extracted from the dependency JAR by AGP into the APK's
+        // lib/<abi>/ directory. Java's System.loadLibrary resolves it directly — no
+        // classpath-resource dance.
+        if (isAndroid()) {
+            try {
+                System.loadLibrary(libname);
+                return;
+            } catch (UnsatisfiedLinkError ignored) {
+                // Fall back to the classpath extraction below for cases where the caller packaged
+                // the library via a non-standard path.
+            }
+        }
+
         final String filename = "lib" + libname;
         final String platformDir = detectPlatformDir();
         final String ext = detectExtension();
@@ -69,6 +82,24 @@ public final class NativeUtils {
         String os = System.getProperty("os.name", "").toLowerCase();
         String arch = System.getProperty("os.arch", "").toLowerCase();
 
+        // Android's os.name is also "Linux", so detect it explicitly so we pick Android-ABI
+        // native libs (built against bionic libc via the NDK) rather than desktop Linux ones.
+        if (isAndroid()) {
+            String abi;
+            if (arch.equals("aarch64") || arch.equals("arm64")) {
+                abi = "arm64-v8a";
+            } else if (arch.startsWith("armv7") || arch.equals("arm")) {
+                abi = "armeabi-v7a";
+            } else if (arch.equals("amd64") || arch.equals("x86_64")) {
+                abi = "x86_64";
+            } else if (arch.equals("i686") || arch.equals("x86")) {
+                abi = "x86";
+            } else {
+                return null;
+            }
+            return "android-" + abi;
+        }
+
         String osName;
         if (os.contains("linux")) {
             osName = "linux";
@@ -90,6 +121,15 @@ public final class NativeUtils {
         }
 
         return osName + "-" + archName;
+    }
+
+    private static boolean isAndroid() {
+        try {
+            Class.forName("android.os.Build");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 
     private static String detectExtension() {
