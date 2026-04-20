@@ -7,6 +7,8 @@ public final class ConfigBuilder {
     private int version;
     private String certChainPath;
     private String privKeyPath;
+    private String verifyLocationsFile;
+    private String verifyLocationsDirectory;
     private Boolean verifyPeer;
     private Boolean grease;
     private boolean enableEarlyData = false;
@@ -69,6 +71,29 @@ public final class ConfigBuilder {
      */
     public final ConfigBuilder loadPrivKeyFromPemFile(String path) {
         this.privKeyPath = path;
+        return this;
+    }
+
+    /**
+     * Loads trusted CA certificates from a PEM file, for peer verification.
+     *
+     * <p>Use together with {@link #withVerifyPeer(boolean)}. If not set, the default
+     * BoringSSL trust configuration is used, which on most platforms is empty and
+     * will cause verification to fail.
+     */
+    public final ConfigBuilder loadVerifyLocationsFromFile(String path) {
+        this.verifyLocationsFile = path;
+        return this;
+    }
+
+    /**
+     * Loads trusted CA certificates from a directory, for peer verification.
+     *
+     * <p>The directory is expected to contain PEM-encoded certificates in the
+     * OpenSSL "hashed" layout (e.g. {@code /etc/ssl/certs}).
+     */
+    public final ConfigBuilder loadVerifyLocationsFromDirectory(String path) {
+        this.verifyLocationsDirectory = path;
         return this;
     }
 
@@ -326,6 +351,20 @@ public final class ConfigBuilder {
 
         if (null != privKeyPath) {
             Native.quiche_config_load_priv_key_from_pem_file(pointer, privKeyPath);
+        }
+
+        if (null != verifyLocationsFile) {
+            final int rc = Native.quiche_config_load_verify_locations_from_file(pointer, verifyLocationsFile);
+            if (Quiche.ErrorCode.SUCCESS != rc) {
+                throw new IllegalArgumentException("Failed to load verify locations from file: " + verifyLocationsFile);
+            }
+        }
+
+        if (null != verifyLocationsDirectory) {
+            final int rc = Native.quiche_config_load_verify_locations_from_directory(pointer, verifyLocationsDirectory);
+            if (Quiche.ErrorCode.SUCCESS != rc) {
+                throw new IllegalArgumentException("Failed to load verify locations from directory: " + verifyLocationsDirectory);
+            }
         }
 
         if (null != verifyPeer) {

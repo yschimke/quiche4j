@@ -39,6 +39,14 @@ public final class Native {
 
 	public final static native void quiche_config_load_priv_key_from_pem_file(long config_ptr, String path);
 
+	public final static native int quiche_config_load_verify_locations_from_file(long config_ptr, String path);
+
+	public final static native int quiche_config_load_verify_locations_from_directory(long config_ptr, String path);
+
+	public final static native byte[][] quiche_conn_peer_cert_chain(long conn_ptr);
+
+	public final static native byte[] quiche_conn_application_proto(long conn_ptr);
+
 	public final static native void quiche_config_verify_peer(long config_ptr, boolean v);
 
 	public final static native void quiche_config_grease(long config_ptr, boolean v);

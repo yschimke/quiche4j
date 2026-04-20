@@ -148,6 +148,25 @@ public class Connection {
     }
 
     /**
+     * Returns the peer's DER-encoded X.509 certificate chain, or {@code null} if no peer
+     * certificate is available yet (e.g. the handshake has not completed).
+     *
+     * <p>The returned array may be empty if the peer sent no certificates (rare on a
+     * client-side connection).
+     */
+    public final byte[][] peerCertificateChain() {
+        return Native.quiche_conn_peer_cert_chain(getPointer());
+    }
+
+    /**
+     * Returns the application protocol (ALPN) negotiated with the peer, or an empty byte array
+     * if none has been negotiated yet. For HTTP/3 this is typically {@code "h3"}.
+     */
+    public final byte[] applicationProto() {
+        return Native.quiche_conn_application_proto(getPointer());
+    }
+
+    /**
      * @see Connection#close(boolean, long, byte[])
      */
     public final int close(boolean app, long error, String reason) {
