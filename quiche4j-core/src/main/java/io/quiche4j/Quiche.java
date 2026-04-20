@@ -292,7 +292,12 @@ public final class Quiche {
         final long ptr = Native.quiche_connect(serverName, connId, config.getPointer(),
             localAddr.getAddress().getAddress(), localAddr.getPort(),
             peerAddr.getAddress().getAddress(), peerAddr.getPort());
-        if (ptr <= ErrorCode.SUCCESS) {
+        // The native side returns either a positive pointer, zero (null/error), or a small
+        // negative quiche error code (see error_to_c in lib.rs, currently down to about -30).
+        // On 64-bit Android (arm64, x86_64) heap pointers can have bit 63 set under ASLR,
+        // which would make the jlong look "negative" and misfire a simple `ptr <= 0` check.
+        // Only treat values in the small error-code range as failures.
+        if (ptr == 0L || (ptr < 0L && ptr > -100L)) {
             throw new ConnectionFailureException(ptr);
         }
         return Connection.newInstance(ptr);

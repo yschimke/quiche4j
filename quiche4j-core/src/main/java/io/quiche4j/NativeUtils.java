@@ -26,17 +26,19 @@ public final class NativeUtils {
     }
 
     public static void loadEmbeddedLibrary(String dir, String libname) {
-        // On Android, the .so was extracted from the dependency JAR by AGP into the APK's
-        // lib/<abi>/ directory. Java's System.loadLibrary resolves it directly — no
-        // classpath-resource dance.
+        // On Android, Native.java's static initializer already called System.loadLibrary(libname)
+        // before calling us, and we're only here because that threw UnsatisfiedLinkError. Retrying
+        // the same call won't help — the classpath hasn't changed. And the classpath-extraction
+        // path below silently swallows IOException from copyFileFromJAR, which would give the
+        // caller a confusing "No implementation found" later with no hint that the AAR packaging
+        // was wrong. Fail fast with a descriptive error instead.
         if (isAndroid()) {
-            try {
-                System.loadLibrary(libname);
-                return;
-            } catch (UnsatisfiedLinkError ignored) {
-                // Fall back to the classpath extraction below for cases where the caller packaged
-                // the library via a non-standard path.
-            }
+            throw new UnsatisfiedLinkError(
+                "lib" + libname + ".so was not found via System.loadLibrary on Android. "
+                    + "The quiche4j-jni JAR/AAR must place native libraries under lib/<abi>/ "
+                    + "so that the Android Gradle Plugin can extract them into the APK's "
+                    + "jniLibs. Verify the build with `-PandroidAbis=<abi>` targets your device."
+            );
         }
 
         final String filename = "lib" + libname;
